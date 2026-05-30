@@ -1,4 +1,4 @@
-class RegisterUserPage {
+class UserPage {
   path = '/admin/cadastrarusuarios';
 
   elements = {
@@ -80,4 +80,4 @@ class RegisterUserPage {
   }
 }
 
-export default new RegisterUserPage();
+export default new UserPage();

@@ -1,78 +1,78 @@
-import { createRandomUser } from './utils/userFactory';
-import { createRandomProduct } from './utils/productFactory';
+import { createRandomUser, createRandomProduct } from '../utils/faker';
+import { scheduleCleanup, runCleanups } from './helpers/factories';
+import {
+  loginViaApi,
+  cancelCart,
+  deleteUserById,
+  deleteProductById,
+  registerUserViaApi,
+  createProductViaApi,
+} from './helpers/auth';
 
-const API_BASE_URL = 'https://serverest.dev';
-
-function buildUserPayload(user) {
-  return {
-    nome: user.name || 'Pedro Faria',
-    email: user.email,
-    password: user.password,
-    administrador: 'true',
-  };
-}
-
-function registerUser(user) {
-  return cy.request({
-    method: 'POST',
-    url: `${API_BASE_URL}/usuarios`,
-    body: buildUserPayload(user),
-    failOnStatusCode: false,
+Cypress.Commands.add('scheduleUserCleanup', (userId, token) => {
+  scheduleCleanup(() => {
+    return cancelCart(token).then(() => deleteUserById(userId, token));
   });
-}
+});
 
-function loginUser(user) {
-  return cy.request({
-    method: 'POST',
-    url: `${API_BASE_URL}/login`,
-    body: {
-      email: user.email,
-      password: user.password,
-    },
-    failOnStatusCode: false,
-  });
-}
+Cypress.Commands.add('scheduleProductCleanup', (productId, token) => {
+  scheduleCleanup(() => deleteProductById(productId, token));
+});
 
-function deleteUserByEmail(user, token) {
-  return cy
-    .request({
-      method: 'GET',
-      url: `${API_BASE_URL}/usuarios`,
-      headers: { Authorization: token },
-    })
-    .then((response) => {
-      const existingUser = response.body.usuarios.find(
-        (registeredUser) => registeredUser.email === user.email,
-      );
+Cypress.Commands.add('registerUserViaApi', (user) => {
+  return registerUserViaApi(user).then((registerResponse) => {
+    expect(registerResponse.status).to.eq(201);
 
-      if (!existingUser) {
-        return;
-      }
-
-      return cy.request({
-        method: 'DELETE',
-        url: `${API_BASE_URL}/usuarios/${existingUser._id}`,
-        headers: { Authorization: token },
-        failOnStatusCode: false,
-      });
+    return cy.wrap({
+      user,
+      userId: registerResponse.body._id,
     });
-}
+  });
+});
 
-Cypress.Commands.add('ensureUserExists', (user) => {
-  registerUser(user).then((registerResponse) => {
-    if (registerResponse.status === 201) {
-      return;
-    }
+Cypress.Commands.add('createUserForTest', (options = {}) => {
+  const isAdmin = options.isAdmin ?? true;
 
-    return loginUser(user).then((loginResponse) => {
-      expect(loginResponse.status).to.eq(200);
+  return cy.generateRandomUser({ isAdmin }).then((user) => {
+    return cy.registerUserViaApi(user).then(({ userId }) => {
+      return loginViaApi(user).then((loginResponse) => {
+        expect(loginResponse.status).to.eq(200);
 
-      return deleteUserByEmail(user, loginResponse.body.authorization).then(() => {
-        return registerUser(user).then((recreateResponse) => {
-          expect(recreateResponse.status).to.eq(201);
+        const token = loginResponse.body.authorization;
+
+        cy.scheduleUserCleanup(userId, token);
+
+        return cy.wrap({
+          user,
+          userId,
+          token,
         });
       });
     });
+  });
+});
+
+Cypress.Commands.add('createProductForTest', (token) => {
+  return cy.generateRandomProduct().then((product) => {
+    return createProductViaApi(product, token).then((response) => {
+      expect(response.status).to.eq(201);
+
+      const productId = response.body._id;
+
+      cy.scheduleProductCleanup(productId, token);
+
+      return cy.wrap({
+        product,
+        productId,
+      });
+    });
+  });
+});
+
+Cypress.Commands.add('scheduleUserCleanupAfterLogin', (user, userId) => {
+  return loginViaApi(user).then((loginResponse) => {
+    expect(loginResponse.status).to.eq(200);
+    cy.scheduleUserCleanup(userId, loginResponse.body.authorization);
   });
 });
 
@@ -85,61 +85,30 @@ Cypress.Commands.add('generateRandomProduct', () => {
 });
 
 Cypress.Commands.add('loginAsClient', () => {
-  return cy.generateRandomUser({ isAdmin: false }).then((user) => {
-    return cy
-      .request({
-        method: 'POST',
-        url: `${API_BASE_URL}/usuarios`,
-        body: {
-          nome: user.name,
-          email: user.email,
-          password: user.password,
-          administrador: 'false',
-        },
-      })
-      .then(() => {
-        return cy
-          .request({
-            method: 'POST',
-            url: `${API_BASE_URL}/login`,
-            body: {
-              email: user.email,
-              password: user.password,
-            },
-          })
-          .then(({ body }) => {
-            cy.visit('/home', {
-              onBeforeLoad(win) {
-                win.localStorage.setItem('serverest/userToken', body.authorization);
-                win.localStorage.setItem('serverest/userEmail', user.email);
-                win.localStorage.setItem('serverest/userNome', user.name);
-                win.localStorage.setItem('products', '[]');
-              },
-            });
-          });
-      });
+  return cy.createUserForTest({ isAdmin: false }).then(({ user, token }) => {
+    cy.visit('/home', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('serverest/userToken', token);
+        win.localStorage.setItem('serverest/userEmail', user.email);
+        win.localStorage.setItem('serverest/userNome', user.name);
+        win.localStorage.setItem('products', '[]');
+      },
+    });
+
+    return cy.wrap({ user, token });
   });
 });
 
-Cypress.Commands.add('loginAsAdmin', (user) => {
-  cy.ensureUserExists(user);
-
-  return cy
-    .request({
-      method: 'POST',
-      url: `${API_BASE_URL}/login`,
-      body: {
-        email: user.email,
-        password: user.password,
+Cypress.Commands.add('loginAsAdmin', () => {
+  return cy.createUserForTest({ isAdmin: true }).then(({ user, token }) => {
+    cy.visit('/admin/cadastrarusuarios', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('serverest/userToken', token);
+        win.localStorage.setItem('serverest/userEmail', user.email);
+        win.localStorage.setItem('serverest/userNome', user.name);
       },
-    })
-    .then(({ body }) => {
-      cy.visit('/admin/cadastrarusuarios', {
-        onBeforeLoad(win) {
-          win.localStorage.setItem('serverest/userToken', body.authorization);
-          win.localStorage.setItem('serverest/userEmail', user.email);
-          win.localStorage.setItem('serverest/userNome', user.name);
-        },
-      });
     });
+
+    return cy.wrap({ user, token });
+  });
 });
