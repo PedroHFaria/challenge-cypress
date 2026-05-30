@@ -79,6 +79,43 @@ Cypress.Commands.add('generateRandomUser', (options = {}) => {
   return createRandomUser(options);
 });
 
+Cypress.Commands.add('loginAsClient', () => {
+  return cy.generateRandomUser({ isAdmin: false }).then((user) => {
+    return cy
+      .request({
+        method: 'POST',
+        url: `${API_BASE_URL}/usuarios`,
+        body: {
+          nome: user.name,
+          email: user.email,
+          password: user.password,
+          administrador: 'false',
+        },
+      })
+      .then(() => {
+        return cy
+          .request({
+            method: 'POST',
+            url: `${API_BASE_URL}/login`,
+            body: {
+              email: user.email,
+              password: user.password,
+            },
+          })
+          .then(({ body }) => {
+            cy.visit('/home', {
+              onBeforeLoad(win) {
+                win.localStorage.setItem('serverest/userToken', body.authorization);
+                win.localStorage.setItem('serverest/userEmail', user.email);
+                win.localStorage.setItem('serverest/userNome', user.name);
+                win.localStorage.setItem('products', '[]');
+              },
+            });
+          });
+      });
+  });
+});
+
 Cypress.Commands.add('loginAsAdmin', (user) => {
   cy.ensureUserExists(user);
 
