@@ -1,0 +1,23 @@
+{
+  "name": "challenge-cypress",
+  "version": "1.0.0",
+  "description": "Cypress automation challenge featuring 3 E2E frontend tests and 3 API test scenarios for the ServeRest application, implemented in JavaScript following automation testing best practices.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PedroHFaria/challenge-cypress.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/PedroHFaria/challenge-cypress/issues"
+  },
+  "homepage": "https://github.com/PedroHFaria/challenge-cypress#readme",
+  "devDependencies": {
+    "cypress": "^15.16.0"
+  }
+}
