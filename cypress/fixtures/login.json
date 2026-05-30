@@ -1,0 +1,10 @@
+{
+  "invalidPassword": {
+    "email": "pedrofaria.mc@gmail.com",
+    "password": "SenhaIncorreta123!"
+  },
+  "nonExistentEmail": {
+    "email": "usuario.inexistente@teste.com",
+    "password": "Password1!"
+  }
+}
