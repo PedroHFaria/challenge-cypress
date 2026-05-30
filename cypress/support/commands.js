@@ -1,3 +1,5 @@
+import { createRandomUser } from './utils/userFactory';
+
 const API_BASE_URL = 'https://serverest.dev';
 
 function buildUserPayload(user) {
@@ -71,4 +73,31 @@ Cypress.Commands.add('ensureUserExists', (user) => {
       });
     });
   });
+});
+
+Cypress.Commands.add('generateRandomUser', (options = {}) => {
+  return createRandomUser(options);
+});
+
+Cypress.Commands.add('loginAsAdmin', (user) => {
+  cy.ensureUserExists(user);
+
+  return cy
+    .request({
+      method: 'POST',
+      url: `${API_BASE_URL}/login`,
+      body: {
+        email: user.email,
+        password: user.password,
+      },
+    })
+    .then(({ body }) => {
+      cy.visit('/admin/cadastrarusuarios', {
+        onBeforeLoad(win) {
+          win.localStorage.setItem('serverest/userToken', body.authorization);
+          win.localStorage.setItem('serverest/userEmail', user.email);
+          win.localStorage.setItem('serverest/userNome', user.name);
+        },
+      });
+    });
 });
