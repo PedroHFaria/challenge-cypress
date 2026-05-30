@@ -1,4 +1,5 @@
 import { createRandomUser } from './utils/userFactory';
+import { createRandomProduct } from './utils/productFactory';
 
 const API_BASE_URL = 'https://serverest.dev';
 
@@ -77,6 +78,10 @@ Cypress.Commands.add('ensureUserExists', (user) => {
 
 Cypress.Commands.add('generateRandomUser', (options = {}) => {
   return createRandomUser(options);
+});
+
+Cypress.Commands.add('generateRandomProduct', () => {
+  return createRandomProduct();
 });
 
 Cypress.Commands.add('loginAsClient', () => {
