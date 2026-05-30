@@ -1,5 +1,6 @@
-// ***********************************************************
-// Support file loaded before every spec file.
-// ***********************************************************
-
 import './commands';
+import { runCleanups } from './helpers/factories';
+
+afterEach(() => {
+  runCleanups();
+});

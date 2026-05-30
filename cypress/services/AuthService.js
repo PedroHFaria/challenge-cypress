@@ -1,10 +1,11 @@
-const API_BASE_URL = 'https://serverest.dev';
+import { apiRequest, apiUrl } from '../support/helpers/environment';
+import { API_MESSAGES } from '../utils/constants';
 
-class LoginApi {
+class AuthService {
   login(credentials) {
-    return cy.request({
+    return apiRequest({
       method: 'POST',
-      url: `${API_BASE_URL}/login`,
+      url: apiUrl('/login'),
       body: {
         email: credentials.email,
         password: credentials.password,
@@ -21,8 +22,8 @@ class LoginApi {
 
   assertInvalidCredentials(response) {
     expect(response.status).to.eq(401);
-    expect(response.body.message).to.eq('Email e/ou senha inválidos');
+    expect(response.body.message).to.eq(API_MESSAGES.invalidCredentials);
   }
 }
 
-export default new LoginApi();
+export default new AuthService();

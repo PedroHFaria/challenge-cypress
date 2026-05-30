@@ -1,4 +1,4 @@
-import LoginPage from '../../support/pages/LoginPage';
+import LoginPage from '../../../pages/LoginPage';
 
 describe('Frontend - Login', () => {
   beforeEach(() => {
@@ -7,12 +7,10 @@ describe('Frontend - Login', () => {
 
   context('Success scenarios', () => {
     it('should login successfully with valid credentials', () => {
-      cy.fixture('users').then(({ validUser }) => {
-        cy.ensureUserExists(validUser);
-
+      cy.createUserForTest({ isAdmin: true }).then(({ user }) => {
         cy.intercept('POST', '**/login').as('loginRequest');
 
-        LoginPage.login(validUser.email, validUser.password);
+        LoginPage.login(user.email, user.password);
 
         cy.wait('@loginRequest').its('response.statusCode').should('eq', 200);
         LoginPage.assertSuccessfulLogin();
@@ -21,15 +19,11 @@ describe('Frontend - Login', () => {
   });
 
   context('Authentication failure scenarios', () => {
-    beforeEach(() => {
-      cy.fixture('login').as('loginData');
-    });
-
     it('should not login with invalid password', () => {
-      cy.get('@loginData').then((loginData) => {
+      cy.createUserForTest({ isAdmin: true }).then(({ user }) => {
         cy.intercept('POST', '**/login').as('loginRequest');
 
-        LoginPage.login(loginData.invalidPassword.email, loginData.invalidPassword.password);
+        LoginPage.login(user.email, 'InvalidPassword123!');
 
         cy.wait('@loginRequest').its('response.statusCode').should('eq', 401);
         LoginPage.assertInvalidCredentialsError();
@@ -37,14 +31,12 @@ describe('Frontend - Login', () => {
     });
 
     it('should not login with non-existent email', () => {
-      cy.get('@loginData').then((loginData) => {
-        cy.intercept('POST', '**/login').as('loginRequest');
+      cy.intercept('POST', '**/login').as('loginRequest');
 
-        LoginPage.login(loginData.nonExistentEmail.email, loginData.nonExistentEmail.password);
+      LoginPage.login('usuario.inexistente@teste.com', 'Password1!');
 
-        cy.wait('@loginRequest').its('response.statusCode').should('eq', 401);
-        LoginPage.assertInvalidCredentialsError();
-      });
+      cy.wait('@loginRequest').its('response.statusCode').should('eq', 401);
+      LoginPage.assertInvalidCredentialsError();
     });
   });
 
