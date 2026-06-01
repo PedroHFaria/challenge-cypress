@@ -37,9 +37,7 @@ describe('API - Carts', () => {
                 CartService.assertSuccessfulCancellation(cancelResponse);
               });
 
-              CartService.getCartById(cartId, token).then((getResponse) => {
-                CartService.assertCartNotFound(getResponse);
-              });
+              CartService.assertCartNotFoundEventually(cartId, token);
             });
           });
         });

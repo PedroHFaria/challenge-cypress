@@ -1,9 +1,9 @@
 import { API_BASE_URL } from '../../utils/constants';
 
-export function apiRequest(options, retries = 3) {
+export function apiRequest(options, retries = 5) {
   return cy.request(options).then((response) => {
     if ([503, 429].includes(response.status) && retries > 0) {
-      return cy.wait(1000).then(() => apiRequest(options, retries - 1));
+      return apiRequest(options, retries - 1);
     }
 
     return cy.wrap(response);

@@ -7,26 +7,35 @@ describe('Frontend - Login', () => {
 
   context('Success scenarios', () => {
     it('should login successfully with valid credentials', () => {
-      cy.createUserForTest({ isAdmin: true }).then(({ user }) => {
-        cy.intercept('POST', '**/login').as('loginRequest');
+      cy.generateRandomUser({ isAdmin: true }).then((user) => {
+        cy.registerUserViaApi(user).then(({ userId }) => {
+          cy.intercept('POST', '**/login').as('loginRequest');
 
-        LoginPage.login(user.email, user.password);
+          LoginPage.login(user.email, user.password);
 
-        cy.wait('@loginRequest').its('response.statusCode').should('eq', 200);
-        LoginPage.assertSuccessfulLogin();
+          cy.wait('@loginRequest').then(({ response }) => {
+            expect(response.statusCode).to.eq(200);
+            cy.scheduleUserCleanup(userId, response.body.authorization);
+          });
+
+          LoginPage.assertSuccessfulLogin();
+        });
       });
     });
   });
 
   context('Authentication failure scenarios', () => {
     it('should not login with invalid password', () => {
-      cy.createUserForTest({ isAdmin: true }).then(({ user }) => {
-        cy.intercept('POST', '**/login').as('loginRequest');
+      cy.generateRandomUser({ isAdmin: true }).then((user) => {
+        cy.registerUserViaApi(user).then(({ userId }) => {
+          cy.intercept('POST', '**/login').as('loginRequest');
 
-        LoginPage.login(user.email, 'InvalidPassword123!');
+          LoginPage.login(user.email, 'InvalidPassword123!');
 
-        cy.wait('@loginRequest').its('response.statusCode').should('eq', 401);
-        LoginPage.assertInvalidCredentialsError();
+          cy.wait('@loginRequest').its('response.statusCode').should('eq', 401);
+          LoginPage.assertInvalidCredentialsError();
+          cy.scheduleUserCleanupAfterLogin(user, userId);
+        });
       });
     });
 

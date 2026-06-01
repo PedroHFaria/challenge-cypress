@@ -5,7 +5,7 @@ import {
   buildProductPayload,
 } from './environment';
 
-export function loginViaApi(user) {
+export function loginViaApi(user, retries = 8) {
   return apiRequest({
     method: 'POST',
     url: apiUrl('/login'),
@@ -14,6 +14,12 @@ export function loginViaApi(user) {
       password: user.password,
     },
     failOnStatusCode: false,
+  }).then((response) => {
+    if (response.status === 401 && retries > 0) {
+      return loginViaApi(user, retries - 1);
+    }
+
+    return cy.wrap(response);
   });
 }
 
