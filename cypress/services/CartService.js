@@ -67,6 +67,21 @@ class CartService {
     expect(response.status).to.eq(400);
     expect(response.body.message).to.eq(API_MESSAGES.cartNotFound);
   }
+
+  assertCartNotFoundEventually(cartId, token, retries = 8) {
+    return this.getCartById(cartId, token).then((response) => {
+      if (response.status === 400) {
+        this.assertCartNotFound(response);
+        return;
+      }
+
+      if (retries > 0) {
+        return this.assertCartNotFoundEventually(cartId, token, retries - 1);
+      }
+
+      this.assertCartNotFound(response);
+    });
+  }
 }
 
 export default new CartService();
